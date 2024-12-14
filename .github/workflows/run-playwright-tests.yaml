@@ -1,0 +1,69 @@
+name: Run Playwright tests
+
+on:
+  workflow_call:
+    inputs:
+      test_directory:
+        required: true
+        type: string
+      test_suite_name:
+        required: true
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: true
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Cache node modules and Playwright Browsers
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test ${{ inputs.test_directory }}
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ${{ inputs.test_suite_name }}
+          path: playwright-report/
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ${{ inputs.test_suite_name}}-trace
+          path: playwright-traces/
+          retention-days: 30          
+
+      - name: Download test artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: test-artifacts
+
+      - name: Generate Table and send it to slack
+        if: always()
+        run: node table.js
+        id: generate-table
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

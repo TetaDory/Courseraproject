@@ -1,0 +1,22 @@
+name: Playwright Tests
+
+on:
+  push:
+  #workflow_dispatch:
+
+jobs:
+
+
+  Events-test:
+    uses: ui/uiGov-UI-TestCases/.github/workflows/run-playwright-tests.yaml@main
+    with:
+      test_directory: tests/Events
+      test_suite_name: Events
+    secrets: inherit
+  
+  Translations-test:
+    uses: ui/uiGov-UI-TestCases/.github/workflows/run-playwright-tests.yaml@main
+    with:
+      test_directory: tests/Translations
+      test_suite_name: Translations
+    secrets: inherit
